@@ -1,0 +1,13 @@
+async function addMyIP(username, password) {
+  const res = await fetch('/api/add-ip', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  const data = await res.json();
+  if (res.ok) {
+    alert('Your IP added to whitelist: ' + data.whitelistedIPs.join(', '));
+  } else {
+    alert('Error: ' + data.error);
+  }
+}
