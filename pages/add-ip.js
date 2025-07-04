@@ -1,35 +1,21 @@
-import { useState } from 'react';
+import { users } from '../../data/users';
 
-export default function AddIP() {
-  const [message, setMessage] = useState('');
+export default function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
 
-  async function handleAddIP() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setMessage('Please login first.');
-      return;
-    }
+  const { username, password } = req.body;
 
-    const res = await fetch('/api/add-ip', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+  // Find user
+  const user = users.find(u => u.username === username && u.password === password);
+  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const data = await res.json();
-    if (res.ok) {
-      setMessage(`Success! Your IP ${data.ip} added.`);
-    } else {
-      setMessage(data.error || 'Failed to add IP');
-    }
+  // Get client IP
+  const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+
+  // Add IP to whitelist if not exists
+  if (!user.whitelistedIPs.includes(ip)) {
+    user.whitelistedIPs.push(ip);
   }
 
-  return (
-    <div style={{ maxWidth: 400, margin: '50px auto', textAlign: 'center' }}>
-      <h2>Add Your IP to Whitelist</h2>
-      <button onClick={handleAddIP} style={{ padding: '10px 20px', marginTop: '20px' }}>
-        Add My IP
-      </button>
-      <p>{message}</p>
-    </div>
-  );
+  res.status(200).json({ message: 'IP added', whitelistedIPs: user.whitelistedIPs });
 }
